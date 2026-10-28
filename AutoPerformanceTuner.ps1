@@ -43,7 +43,7 @@ $script:SystemSpecs = @{
     ActiveNICsCount  = 0
     NICList          = @()
     DiskTypes        = @()
-    RAMProfile       = "Low" # Low, Medium, High
+    RAMProfile       = "Low"
     SelectedProfile  = "Autonomous Dynamic Tuning"
 }
 
@@ -56,7 +56,7 @@ $form.Size = New-Object System.Drawing.Size(860, 720)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
 $form.MaximizeBox = $false
-$form.BackColor = [System.Drawing.Color]::FromArgb(24, 26, 32) # Dark theme background
+$form.BackColor = [System.Drawing.Color]::FromArgb(24, 26, 32)
 
 # Font definitions
 $fontTitle    = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
@@ -73,7 +73,7 @@ $pnlHeader.BackColor = [System.Drawing.Color]::FromArgb(18, 20, 26)
 $form.Controls.Add($pnlHeader)
 
 $lblTitle = New-Object System.Windows.Forms.Label
-$lblTitle.Text = "⚡ AUTONOMOUS PERFORMANCE & TUNING ENGINE"
+$lblTitle.Text = "[+] AUTONOMOUS PERFORMANCE & TUNING ENGINE"
 $lblTitle.Font = $fontTitle
 $lblTitle.Location = New-Object System.Drawing.Point(20, 12)
 $lblTitle.Size = New-Object System.Drawing.Size(820, 30)
@@ -156,7 +156,7 @@ $form.Controls.Add($progressBar)
 
 # Action Buttons Panel
 $btnAutoTune = New-Object System.Windows.Forms.Button
-$btnAutoTune.Text = "🚀 Start Auto-Tune"
+$btnAutoTune.Text = "Start Auto-Tune"
 $btnAutoTune.Font = $fontButton
 $btnAutoTune.Location = New-Object System.Drawing.Point(20, 595)
 $btnAutoTune.Size = New-Object System.Drawing.Size(190, 42)
@@ -167,7 +167,7 @@ $btnAutoTune.FlatAppearance.BorderSize = 0
 $form.Controls.Add($btnAutoTune)
 
 $btnRestore = New-Object System.Windows.Forms.Button
-$btnRestore.Text = "↺ Restore Backup"
+$btnRestore.Text = "Restore Backup"
 $btnRestore.Font = $fontButton
 $btnRestore.Location = New-Object System.Drawing.Point(222, 595)
 $btnRestore.Size = New-Object System.Drawing.Size(190, 42)
@@ -178,7 +178,7 @@ $btnRestore.FlatAppearance.BorderSize = 0
 $form.Controls.Add($btnRestore)
 
 $btnReport = New-Object System.Windows.Forms.Button
-$btnReport.Text = "📊 System Report"
+$btnReport.Text = "System Report"
 $btnReport.Font = $fontButton
 $btnReport.Location = New-Object System.Drawing.Point(424, 595)
 $btnReport.Size = New-Object System.Drawing.Size(190, 42)
@@ -189,7 +189,7 @@ $btnReport.FlatAppearance.BorderSize = 0
 $form.Controls.Add($btnReport)
 
 $btnExportLog = New-Object System.Windows.Forms.Button
-$btnExportLog.Text = "💾 Save Log"
+$btnExportLog.Text = "Save Log"
 $btnExportLog.Font = $fontButton
 $btnExportLog.Location = New-Object System.Drawing.Point(626, 595)
 $btnExportLog.Size = New-Object System.Drawing.Size(199, 42)
@@ -285,7 +285,7 @@ function Invoke-HardwareDetection {
         $ramStr = "$($script:SystemSpecs.TotalRAM_GB) GB RAM (Profile: $($script:SystemSpecs.RAMProfile))"
         $cpuStr = "$($script:SystemSpecs.LogicalCores) Logical Cores / $($script:SystemSpecs.PhysicalCores) Physical Cores"
 
-        $lblSummaryText.Text = "• Platform: $($script:SystemSpecs.OSCaption) [$roleStr]`r`n• Processor & RAM: $cpuStr | $ramStr`r`n• Network Infrastructure: $nicStr"
+        $lblSummaryText.Text = "Platform: $($script:SystemSpecs.OSCaption) [$roleStr]`r`nProcessor & RAM: $cpuStr | $ramStr`r`nNetwork Infrastructure: $nicStr"
 
         Write-Log "OS Detected: $($script:SystemSpecs.OSCaption) (Version $($script:SystemSpecs.OSVersion))" "SUCCESS"
         Write-Log "CPU Cores: $($script:SystemSpecs.LogicalCores) logical / $($script:SystemSpecs.PhysicalCores) physical" "SUCCESS"
@@ -628,7 +628,7 @@ function Start-FullAutoTuneSequence {
 
     Set-Progress 100
     Write-Log "=========================================================" "SUCCESS"
-    Write-Log "⚡ ALL 9 SUBSYSTEMS AUTONOMOUSLY TUNED FOR PEAK PERFORMANCE! " "SUCCESS"
+    Write-Log "[+] ALL 9 SUBSYSTEMS AUTONOMOUSLY TUNED FOR PEAK PERFORMANCE!" "SUCCESS"
     Write-Log "Recommended Action: Reboot system to ensure all kernel changes take effect." "SUCCESS"
     Write-Log "=========================================================" "SUCCESS"
 
@@ -652,54 +652,58 @@ function Generate-SystemReport {
 
     $reportPath = Join-Path $script:ScriptDir "System_Tuning_Report.html"
 
-    $htmlContent = @"
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Autonomous Windows Performance Report</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #12141a; color: #e0e5ea; padding: 20px; }
-        h1 { color: #00d2ff; border-bottom: 2px solid #00d2ff; padding-bottom: 10px; }
-        h2 { color: #00e673; margin-top: 25px; }
-        .card { background-color: #1a1d26; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a2e3d; }
-        th { background-color: #222633; color: #00d2ff; }
-        .status-good { color: #00e673; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <h1>⚡ Autonomous Performance & Tuning Diagnostic Report</h1>
-    <div class="card">
-        <h2>System Environment Summary</h2>
-        <table>
-            <tr><th>Property</th><th>Detected Value</th></tr>
-            <tr><td>Operating System</td><td>$($script:SystemSpecs.OSCaption) ($($script:SystemSpecs.OSVersion))</td></tr>
-            <tr><td>Processor Core Count</td><td>$($script:SystemSpecs.LogicalCores) Logical / $($script:SystemSpecs.PhysicalCores) Physical Cores</td></tr>
-            <tr><td>Total Memory (RAM)</td><td>$($script:SystemSpecs.TotalRAM_GB) GB (Profile: $($script:SystemSpecs.RAMProfile))</td></tr>
-            <tr><td>Active Physical Adapters</td><td>$($script:SystemSpecs.ActiveNICsCount) Interface(s)</td></tr>
-        </table>
-    </div>
-    <div class="card">
-        <h2>Subsystem Tuning Status</h2>
-        <table>
-            <tr><th>Subsystem</th><th>Target Parameters</th><th>Status</th></tr>
-            <tr><td>Power & CPU</td><td>Ultimate / High Performance Profile, Core Parking Disabled</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>Kernel Memory</td><td>DisablePagingExecutive=1, LargeSystemCache=1, MaxWorkerThreads</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>Storage NTFS</td><td>NtfsDisable8dot3=1, NtfsDisableLastAccess=1, TRIM Active</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>Network TCP Stack</td><td>TCP Auto-Tuning, Congestion Provider (CUBIC/CTCP), ECN Enabled</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>SMB Multichannel</td><td>SMB Multichannel Enabled, Smb2CreditsMax Scaled, SMB1 Disabled</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>Latency Throttles</td><td>NetworkThrottlingIndex=Disabled, SystemResponsiveness=0</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>GPU Acceleration</td><td>Hardware-Accelerated GPU Scheduling (HAGS) Mode 2</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>DNS Cache</td><td>MaxCacheTtl=86400, MaxNegativeCacheTtl=5, NetFailureCacheTime=0</td><td class="status-good">OPTIMIZED</td></tr>
-            <tr><td>NIC Interrupts</td><td>Flow Control Disabled, RSS Queues Aligned</td><td class="status-good">OPTIMIZED</td></tr>
-        </table>
-    </div>
-</body>
-</html>
-"@
+    $osInfo = "$($script:SystemSpecs.OSCaption) ($($script:SystemSpecs.OSVersion))"
+    $cpuInfo = "$($script:SystemSpecs.LogicalCores) Logical / $($script:SystemSpecs.PhysicalCores) Physical Cores"
+    $ramInfo = "$($script:SystemSpecs.TotalRAM_GB) GB (Profile: $($script:SystemSpecs.RAMProfile))"
+    $nicInfo = "$($script:SystemSpecs.ActiveNICsCount) Interface(s)"
 
-    $htmlContent | Out-File -FilePath $reportPath -Encoding utf8
+    $sb = New-Object System.Text.StringBuilder
+    [void]$sb.AppendLine("<!DOCTYPE html>")
+    [void]$sb.AppendLine("<html>")
+    [void]$sb.AppendLine("<head>")
+    [void]$sb.AppendLine("    <title>Autonomous Windows Performance Report</title>")
+    [void]$sb.AppendLine("    <style>")
+    [void]$sb.AppendLine("        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #12141a; color: #e0e5ea; padding: 20px; }")
+    [void]$sb.AppendLine("        h1 { color: #00d2ff; border-bottom: 2px solid #00d2ff; padding-bottom: 10px; }")
+    [void]$sb.AppendLine("        h2 { color: #00e673; margin-top: 25px; }")
+    [void]$sb.AppendLine("        .card { background-color: #1a1d26; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }")
+    [void]$sb.AppendLine("        table { width: 100%; border-collapse: collapse; margin-top: 10px; }")
+    [void]$sb.AppendLine("        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a2e3d; }")
+    [void]$sb.AppendLine("        th { background-color: #222633; color: #00d2ff; }")
+    [void]$sb.AppendLine("        .status-good { color: #00e673; font-weight: bold; }")
+    [void]$sb.AppendLine("    </style>")
+    [void]$sb.AppendLine("</head>")
+    [void]$sb.AppendLine("<body>")
+    [void]$sb.AppendLine("    <h1>Autonomous Performance and Tuning Diagnostic Report</h1>")
+    [void]$sb.AppendLine("    <div class='card'>")
+    [void]$sb.AppendLine("        <h2>System Environment Summary</h2>")
+    [void]$sb.AppendLine("        <table>")
+    [void]$sb.AppendLine("            <tr><th>Property</th><th>Detected Value</th></tr>")
+    [void]$sb.AppendLine("            <tr><td>Operating System</td><td>$osInfo</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Processor Core Count</td><td>$cpuInfo</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Total Memory (RAM)</td><td>$ramInfo</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Active Physical Adapters</td><td>$nicInfo</td></tr>")
+    [void]$sb.AppendLine("        </table>")
+    [void]$sb.AppendLine("    </div>")
+    [void]$sb.AppendLine("    <div class='card'>")
+    [void]$sb.AppendLine("        <h2>Subsystem Tuning Status</h2>")
+    [void]$sb.AppendLine("        <table>")
+    [void]$sb.AppendLine("            <tr><th>Subsystem</th><th>Target Parameters</th><th>Status</th></tr>")
+    [void]$sb.AppendLine("            <tr><td>Power and CPU</td><td>Ultimate / High Performance Profile, Core Parking Disabled</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Kernel Memory</td><td>DisablePagingExecutive=1, LargeSystemCache=1, MaxWorkerThreads</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Storage NTFS</td><td>NtfsDisable8dot3=1, NtfsDisableLastAccess=1, TRIM Active</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Network TCP Stack</td><td>TCP Auto-Tuning, Congestion Provider (CUBIC/CTCP), ECN Enabled</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>SMB Multichannel</td><td>SMB Multichannel Enabled, Smb2CreditsMax Scaled, SMB1 Disabled</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>Latency Throttles</td><td>NetworkThrottlingIndex=Disabled, SystemResponsiveness=0</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>GPU Acceleration</td><td>Hardware-Accelerated GPU Scheduling (HAGS) Mode 2</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>DNS Cache</td><td>MaxCacheTtl=86400, MaxNegativeCacheTtl=5, NetFailureCacheTime=0</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("            <tr><td>NIC Interrupts</td><td>Flow Control Disabled, RSS Queues Aligned</td><td class='status-good'>OPTIMIZED</td></tr>")
+    [void]$sb.AppendLine("        </table>")
+    [void]$sb.AppendLine("    </div>")
+    [void]$sb.AppendLine("</body>")
+    [void]$sb.AppendLine("</html>")
+
+    $sb.ToString() | Out-File -FilePath $reportPath -Encoding utf8
     Write-Log "Diagnostic report generated successfully: $reportPath" "SUCCESS"
 
     [System.Windows.Forms.MessageBox]::Show(

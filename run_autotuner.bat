@@ -1,5 +1,5 @@
 @echo off
-title Autonomous Windows Performance & Tuning Tool
+title Autonomous Windows Performance and Tuning Tool
 color 0A
 :: Ensure administrator privileges
 net session >nul 2>&1
@@ -14,7 +14,7 @@ if %errorLevel% == 0 (
 :RUN
 cd /d "%~dp0"
 echo ====================================================================
-echo   LAUNCHING AUTONOMOUS PERFORMANCE & TUNING ENGINE
+echo   LAUNCHING AUTONOMOUS PERFORMANCE AND TUNING ENGINE
 echo ====================================================================
 echo.
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0AutoPerformanceTuner.ps1"
