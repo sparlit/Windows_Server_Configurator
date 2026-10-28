@@ -118,9 +118,9 @@ $cmbProfile = New-Object System.Windows.Forms.ComboBox
 $cmbProfile.Location = New-Object System.Drawing.Point(555, 48)
 $cmbProfile.Size = New-Object System.Drawing.Size(235, 25)
 $cmbProfile.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
-$cmbProfile.Items.Add("Autonomous Dynamic Tuning") | Out-Null
-$cmbProfile.Items.Add("Max Server Throughput") | Out-Null
-$cmbProfile.Items.Add("Low Latency Workstation") | Out-Null
+[void]$cmbProfile.Items.Add("Autonomous Dynamic Tuning")
+[void]$cmbProfile.Items.Add("Max Server Throughput")
+[void]$cmbProfile.Items.Add("Low Latency Workstation")
 $cmbProfile.SelectedIndex = 0
 $grpSummary.Controls.Add($cmbProfile)
 
@@ -585,7 +585,11 @@ function Start-FullAutoTuneSequence {
     $btnReport.Enabled = $false
     Set-Progress 0
 
-    $profileName = $cmbProfile.SelectedItem
+    $profileName = "Autonomous Dynamic Tuning"
+    if ($cmbProfile -and $cmbProfile.SelectedItem) {
+        $profileName = $cmbProfile.SelectedItem.ToString()
+    }
+
     Write-Log "=========================================================" "INFO"
     Write-Log "STARTING AUTOMATIC TUNING WORKFLOW [Profile: $profileName]" "INFO"
     Write-Log "=========================================================" "INFO"
@@ -793,14 +797,20 @@ $form.Add_Shown({
     Invoke-HardwareDetection
 
     # Auto-start auto-tuning sequence after 1 second
-    $autoStartTimer = New-Object System.Windows.Forms.Timer
-    $autoStartTimer.Interval = 1000
-    $autoStartTimer.Add_Tick({
-        $autoStartTimer.Stop()
-        $autoStartTimer.Dispose()
+    $script:autoStartTimer = New-Object System.Windows.Forms.Timer
+    $script:autoStartTimer.Interval = 1000
+    $script:autoStartTimer.Add_Tick({
+        param($sender, $e)
+        if ($sender) {
+            $sender.Stop()
+            $sender.Dispose()
+        } elseif ($script:autoStartTimer) {
+            $script:autoStartTimer.Stop()
+            $script:autoStartTimer.Dispose()
+        }
         Start-FullAutoTuneSequence
     })
-    $autoStartTimer.Start()
+    $script:autoStartTimer.Start()
 })
 
 # Display Form
