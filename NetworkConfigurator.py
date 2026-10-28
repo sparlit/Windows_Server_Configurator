@@ -452,9 +452,9 @@ echo Flushing legacy network cache layers...
 net use * /delete /yes >nul 2>&1
 timeout /t 2 /nobreak >nul
 echo Mounting File Server 1 (GDC Core Lane) to {drive}...
-net use {drive} "\\\\`[fd37:e2a1:9c84:1000::2`]:\\{share}" /persistent:yes
+net use {drive} "\\\\fd37:e2a1:9c84:1000--2.ipv6-literal.net\\{share}" /persistent:yes
 echo Mounting File Server 2 (GFS Core Lane) to Y:...
-net use Y: "\\\\`[fd37:e2a1:9c84:1000::3`]:\\{share}" /persistent:yes
+net use Y: "\\\\fd37:e2a1:9c84:1000--3.ipv6-literal.net\\{share}" /persistent:yes
 echo.
 echo ====================================================================
 echo    🏆 STORAGE PATH DEPLOYMENT COMPLETE (HIGH SPEED LANE ENGAGED)
