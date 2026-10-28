@@ -1,1 +1,1 @@
-# Windows_Server_Configurator
+# Windows Server Configurator
