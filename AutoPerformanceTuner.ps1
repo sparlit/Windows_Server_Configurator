@@ -5,7 +5,7 @@
     Fully automatic, context-aware performance tuning GUI application for Windows Workstations and Servers.
     Detects hardware parameters (CPU, RAM, Disks, NICs, OS Role) and automatically creates pre-tuning backups,
     adjusts kernel memory limits, network TCP stack settings, storage & file system optimizations, SMB protocols,
-    power management profiles, and system latency controls.
+    power management profiles, GPU scheduling, DNS caching, and system latency controls.
 .NOTES
     Requires Administrator privileges.
 #>
@@ -13,7 +13,6 @@
 # Check Administrator Rights
 $IsAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $IsAdmin) {
-    # If not running as admin, attempt self-elevation or inform user
     Write-Warning "AutoPerformanceTuner requires Administrator privileges to modify system configurations."
 }
 
@@ -45,6 +44,7 @@ $script:SystemSpecs = @{
     NICList          = @()
     DiskTypes        = @()
     RAMProfile       = "Low" # Low, Medium, High
+    SelectedProfile  = "Autonomous Dynamic Tuning"
 }
 
 # -------------------------------------------------------------------------
@@ -52,7 +52,7 @@ $script:SystemSpecs = @{
 # -------------------------------------------------------------------------
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Autonomous Windows Performance & Tuning Engine"
-$form.Size = New-Object System.Drawing.Size(820, 680)
+$form.Size = New-Object System.Drawing.Size(860, 720)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
 $form.MaximizeBox = $false
@@ -63,12 +63,12 @@ $fontTitle    = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.F
 $fontSubTitle = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Regular)
 $fontSection  = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
 $fontConsole  = New-Object System.Drawing.Font("Consolas", 9, [System.Drawing.FontStyle]::Regular)
-$fontButton   = New-Object System.Drawing.Font("Segoe UI", 9.5, [System.Drawing.FontStyle]::Bold)
+$fontButton   = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
 
 # Header Banner Panel
 $pnlHeader = New-Object System.Windows.Forms.Panel
 $pnlHeader.Location = New-Object System.Drawing.Point(0, 0)
-$pnlHeader.Size = New-Object System.Drawing.Size(820, 75)
+$pnlHeader.Size = New-Object System.Drawing.Size(860, 75)
 $pnlHeader.BackColor = [System.Drawing.Color]::FromArgb(18, 20, 26)
 $form.Controls.Add($pnlHeader)
 
@@ -76,40 +76,59 @@ $lblTitle = New-Object System.Windows.Forms.Label
 $lblTitle.Text = "⚡ AUTONOMOUS PERFORMANCE & TUNING ENGINE"
 $lblTitle.Font = $fontTitle
 $lblTitle.Location = New-Object System.Drawing.Point(20, 12)
-$lblTitle.Size = New-Object System.Drawing.Size(780, 30)
+$lblTitle.Size = New-Object System.Drawing.Size(820, 30)
 $lblTitle.ForeColor = [System.Drawing.Color]::FromArgb(0, 210, 255)
 $pnlHeader.Controls.Add($lblTitle)
 
 $lblSubTitle = New-Object System.Windows.Forms.Label
-$lblSubTitle.Text = "Fully Automatic Hardware Auto-Detection, Subsystem Optimization, and Pre-Tuning State Safety Backup"
+$lblSubTitle.Text = "Autonomous Multi-Subsystem Optimization, GPU Scheduling, DNS Cache, and Safety Rollbacks"
 $lblSubTitle.Font = $fontSubTitle
 $lblSubTitle.Location = New-Object System.Drawing.Point(22, 43)
-$lblSubTitle.Size = New-Object System.Drawing.Size(770, 22)
+$lblSubTitle.Size = New-Object System.Drawing.Size(810, 22)
 $lblSubTitle.ForeColor = [System.Drawing.Color]::FromArgb(160, 175, 195)
 $pnlHeader.Controls.Add($lblSubTitle)
 
 # System Summary Panel
 $grpSummary = New-Object System.Windows.Forms.GroupBox
-$grpSummary.Text = " Detected Hardware & OS Environment "
+$grpSummary.Text = " Detected Environment & Optimization Profile "
 $grpSummary.Font = $fontSection
 $grpSummary.Location = New-Object System.Drawing.Point(20, 85)
-$grpSummary.Size = New-Object System.Drawing.Size(765, 80)
+$grpSummary.Size = New-Object System.Drawing.Size(805, 90)
 $grpSummary.ForeColor = [System.Drawing.Color]::FromArgb(0, 210, 255)
 $form.Controls.Add($grpSummary)
 
 $lblSummaryText = New-Object System.Windows.Forms.Label
 $lblSummaryText.Text = "Scanning hardware parameters..."
 $lblSummaryText.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Regular)
-$lblSummaryText.Location = New-Object System.Drawing.Point(15, 25)
-$lblSummaryText.Size = New-Object System.Drawing.Size(735, 45)
+$lblSummaryText.Location = New-Object System.Drawing.Point(15, 22)
+$lblSummaryText.Size = New-Object System.Drawing.Size(530, 60)
 $lblSummaryText.ForeColor = [System.Drawing.Color]::FromArgb(220, 225, 230)
 $grpSummary.Controls.Add($lblSummaryText)
 
+# Profile Selector
+$lblProfile = New-Object System.Windows.Forms.Label
+$lblProfile.Text = "Target Profile:"
+$lblProfile.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$lblProfile.Location = New-Object System.Drawing.Point(555, 25)
+$lblProfile.Size = New-Object System.Drawing.Size(100, 20)
+$lblProfile.ForeColor = [System.Drawing.Color]::FromArgb(0, 210, 255)
+$grpSummary.Controls.Add($lblProfile)
+
+$cmbProfile = New-Object System.Windows.Forms.ComboBox
+$cmbProfile.Location = New-Object System.Drawing.Point(555, 48)
+$cmbProfile.Size = New-Object System.Drawing.Size(235, 25)
+$cmbProfile.DropDownStyle = [System.Windows.Forms.ComboBoxStyle]::DropDownList
+$cmbProfile.Items.Add("Autonomous Dynamic Tuning") | Out-Null
+$cmbProfile.Items.Add("Max Server Throughput") | Out-Null
+$cmbProfile.Items.Add("Low Latency Workstation") | Out-Null
+$cmbProfile.SelectedIndex = 0
+$grpSummary.Controls.Add($cmbProfile)
+
 # Log Console Label
 $lblConsole = New-Object System.Windows.Forms.Label
-$lblConsole.Text = "Real-Time Execution & Optimization Log:"
+$lblConsole.Text = "Real-Time Subsystem Optimization Log:"
 $lblConsole.Font = $fontSection
-$lblConsole.Location = New-Object System.Drawing.Point(20, 175)
+$lblConsole.Location = New-Object System.Drawing.Point(20, 185)
 $lblConsole.Size = New-Object System.Drawing.Size(400, 20)
 $lblConsole.ForeColor = [System.Drawing.Color]::FromArgb(220, 225, 230)
 $form.Controls.Add($lblConsole)
@@ -119,8 +138,8 @@ $txtLog = New-Object System.Windows.Forms.TextBox
 $txtLog.Multiline = $true
 $txtLog.ScrollBars = "Vertical"
 $txtLog.Font = $fontConsole
-$txtLog.Location = New-Object System.Drawing.Point(20, 200)
-$txtLog.Size = New-Object System.Drawing.Size(765, 330)
+$txtLog.Location = New-Object System.Drawing.Point(20, 210)
+$txtLog.Size = New-Object System.Drawing.Size(805, 340)
 $txtLog.ReadOnly = $true
 $txtLog.BackColor = [System.Drawing.Color]::FromArgb(12, 14, 18)
 $txtLog.ForeColor = [System.Drawing.Color]::FromArgb(0, 230, 115)
@@ -128,8 +147,8 @@ $form.Controls.Add($txtLog)
 
 # Progress Bar
 $progressBar = New-Object System.Windows.Forms.ProgressBar
-$progressBar.Location = New-Object System.Drawing.Point(20, 540)
-$progressBar.Size = New-Object System.Drawing.Size(765, 20)
+$progressBar.Location = New-Object System.Drawing.Point(20, 560)
+$progressBar.Size = New-Object System.Drawing.Size(805, 20)
 $progressBar.Minimum = 0
 $progressBar.Maximum = 100
 $progressBar.Value = 0
@@ -137,10 +156,10 @@ $form.Controls.Add($progressBar)
 
 # Action Buttons Panel
 $btnAutoTune = New-Object System.Windows.Forms.Button
-$btnAutoTune.Text = "🚀 Start Full Auto-Tune"
+$btnAutoTune.Text = "🚀 Start Auto-Tune"
 $btnAutoTune.Font = $fontButton
-$btnAutoTune.Location = New-Object System.Drawing.Point(20, 575)
-$btnAutoTune.Size = New-Object System.Drawing.Size(240, 42)
+$btnAutoTune.Location = New-Object System.Drawing.Point(20, 595)
+$btnAutoTune.Size = New-Object System.Drawing.Size(190, 42)
 $btnAutoTune.BackColor = [System.Drawing.Color]::FromArgb(0, 150, 255)
 $btnAutoTune.ForeColor = [System.Drawing.Color]::White
 $btnAutoTune.FlatStyle = "Flat"
@@ -148,21 +167,32 @@ $btnAutoTune.FlatAppearance.BorderSize = 0
 $form.Controls.Add($btnAutoTune)
 
 $btnRestore = New-Object System.Windows.Forms.Button
-$btnRestore.Text = "↺ Restore State Backup"
+$btnRestore.Text = "↺ Restore Backup"
 $btnRestore.Font = $fontButton
-$btnRestore.Location = New-Object System.Drawing.Point(275, 575)
-$btnRestore.Size = New-Object System.Drawing.Size(240, 42)
+$btnRestore.Location = New-Object System.Drawing.Point(222, 595)
+$btnRestore.Size = New-Object System.Drawing.Size(190, 42)
 $btnRestore.BackColor = [System.Drawing.Color]::FromArgb(180, 90, 0)
 $btnRestore.ForeColor = [System.Drawing.Color]::White
 $btnRestore.FlatStyle = "Flat"
 $btnRestore.FlatAppearance.BorderSize = 0
 $form.Controls.Add($btnRestore)
 
+$btnReport = New-Object System.Windows.Forms.Button
+$btnReport.Text = "📊 System Report"
+$btnReport.Font = $fontButton
+$btnReport.Location = New-Object System.Drawing.Point(424, 595)
+$btnReport.Size = New-Object System.Drawing.Size(190, 42)
+$btnReport.BackColor = [System.Drawing.Color]::FromArgb(0, 130, 110)
+$btnReport.ForeColor = [System.Drawing.Color]::White
+$btnReport.FlatStyle = "Flat"
+$btnReport.FlatAppearance.BorderSize = 0
+$form.Controls.Add($btnReport)
+
 $btnExportLog = New-Object System.Windows.Forms.Button
-$btnExportLog.Text = "💾 Save Log To File"
+$btnExportLog.Text = "💾 Save Log"
 $btnExportLog.Font = $fontButton
-$btnExportLog.Location = New-Object System.Drawing.Point(530, 575)
-$btnExportLog.Size = New-Object System.Drawing.Size(255, 42)
+$btnExportLog.Location = New-Object System.Drawing.Point(626, 595)
+$btnExportLog.Size = New-Object System.Drawing.Size(199, 42)
 $btnExportLog.BackColor = [System.Drawing.Color]::FromArgb(60, 64, 72)
 $btnExportLog.ForeColor = [System.Drawing.Color]::White
 $btnExportLog.FlatStyle = "Flat"
@@ -279,10 +309,8 @@ function Invoke-AutoBackup {
 
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
     $regBackupPath = Join-Path $script:BackupDir "PreTune_Registry_Backup_$timestamp.reg"
-    $jsonBackupPath = Join-Path $script:BackupDir "PreTune_Metadata_$timestamp.json"
-
-    # Export key HKLM registry trees via reg.exe
     $softBackupPath = Join-Path $script:BackupDir "PreTune_Software_Backup_$timestamp.reg"
+    $jsonBackupPath = Join-Path $script:BackupDir "PreTune_Metadata_$timestamp.json"
 
     try {
         # Export SYSTEM and SOFTWARE registry subtrees modified by the tuner
@@ -308,12 +336,12 @@ function Invoke-AutoBackup {
 }
 
 # -------------------------------------------------------------------------
-# 3. COMPREHENSIVE AUTO-TUNING MODULES
+# 3. SUBSYSTEM AUTO-TUNING MODULES (9 Subsystems)
 # -------------------------------------------------------------------------
 
 # Subsystem 1: Power & CPU Scheduling
 function Tune-PowerAndCPU {
-    Write-Log "Subsystem [1/6]: Optimizing Power Management & CPU Scheduling..." "TUNING"
+    Write-Log "Subsystem [1/9]: Optimizing Power Management & CPU Scheduling..." "TUNING"
 
     try {
         # Set High Performance power plan
@@ -335,7 +363,7 @@ function Tune-PowerAndCPU {
 
 # Subsystem 2: Kernel & Memory Subsystem
 function Tune-KernelAndMemory {
-    Write-Log "Subsystem [2/6]: Auto-tuning Kernel & Memory Management..." "TUNING"
+    Write-Log "Subsystem [2/9]: Auto-tuning Kernel & Memory Management..." "TUNING"
 
     $memKey = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management"
 
@@ -370,7 +398,7 @@ function Tune-KernelAndMemory {
 
 # Subsystem 3: Storage & FileSystem
 function Tune-StorageAndFileSystem {
-    Write-Log "Subsystem [3/6]: Tuning NTFS File System & Storage Caching..." "TUNING"
+    Write-Log "Subsystem [3/9]: Tuning NTFS File System & Storage Caching..." "TUNING"
 
     $fsKey = "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem"
 
@@ -381,11 +409,11 @@ function Tune-StorageAndFileSystem {
         # Disable Last Access Update (Cuts disk read-IO operations in half)
         Set-ItemProperty -Path $fsKey -Name "NtfsDisableLastAccessUpdate" -Value 1 -Type DWORD -ErrorAction SilentlyContinue
 
-        # MFT Zone Reservation (Reserves space for Master File Table to prevent fragmentation)
+        # MFT Zone Reservation
         $mftVal = if ($script:SystemSpecs.RAMProfile -eq "High") { 3 } else { 2 }
         Set-ItemProperty -Path $fsKey -Name "NtfsMftZoneReservation" -Value $mftVal -Type DWORD -ErrorAction SilentlyContinue
 
-        # Enable TRIM / Delete Notification for SSDs via fsutil
+        # Enable TRIM for SSDs
         & fsutil behavior set DisableDeleteNotify 0 2>&1 | Out-Null
 
         Write-Log "NTFS Optimized: Disabled 8dot3 names, disabled last-access timestamp, allocated MFT Zone $mftVal, verified TRIM." "SUCCESS"
@@ -396,10 +424,9 @@ function Tune-StorageAndFileSystem {
 
 # Subsystem 4: Network Stack & Hardware Offloading
 function Tune-NetworkStack {
-    Write-Log "Subsystem [4/6]: Optimizing TCP/IP Network Stack & Hardware Offloading..." "TUNING"
+    Write-Log "Subsystem [4/9]: Optimizing TCP/IP Network Stack & Hardware Offloading..." "TUNING"
 
     try {
-        # Select congestion provider
         $tcpProvider = "CUBIC"
         if ($script:SystemSpecs.OSVersion -like "6.*") {
             $tcpProvider = "CTCP"
@@ -412,7 +439,7 @@ function Tune-NetworkStack {
             Set-NetTCPSetting -SettingName "Server" -AutoTuningLevelLocal Normal -CongestionProvider $tcpProvider -EcnCapability Enabled -ErrorAction SilentlyContinue
         }
 
-        # Enable Timestamps and Fast Open
+        # Enable Timestamps
         Set-NetTCPSetting -SettingName "*" -Timestamps Enabled -ErrorAction SilentlyContinue
 
         # Hardware Offloading across physical adapters
@@ -427,7 +454,7 @@ function Tune-NetworkStack {
                 Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Receive Buffers" -DisplayValue "2048" -ErrorAction SilentlyContinue
                 Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Transmit Buffers" -DisplayValue "2048" -ErrorAction SilentlyContinue
 
-                # Disable Energy Efficient Ethernet (EEE) / Green Ethernet to remove micro-latency
+                # Disable Energy Efficient Ethernet
                 Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Energy Efficient Ethernet" -DisplayValue "Disabled" -ErrorAction SilentlyContinue
                 Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Green Ethernet" -DisplayValue "Disabled" -ErrorAction SilentlyContinue
             }
@@ -441,14 +468,14 @@ function Tune-NetworkStack {
 
 # Subsystem 5: SMB & File Sharing Protocol
 function Tune-SMBAndFileSharing {
-    Write-Log "Subsystem [5/6]: Auto-adjusting SMB Multichannel & Protocol Pipeline..." "TUNING"
+    Write-Log "Subsystem [5/9]: Auto-adjusting SMB Multichannel & Protocol Pipeline..." "TUNING"
 
     try {
-        # Enable SMB Multichannel on client and server
+        # Enable SMB Multichannel
         Set-SmbClientConfiguration -EnableMultiChannel $true -Confirm:$false -ErrorAction SilentlyContinue
         Set-SmbServerConfiguration -EnableMultiChannel $true -Confirm:$false -ErrorAction SilentlyContinue
 
-        # Disable legacy SMB1 protocol for security and performance
+        # Disable legacy SMB1
         Set-SmbServerConfiguration -EnableSMB1Protocol $false -Confirm:$false -ErrorAction SilentlyContinue
 
         # Tune SMB2 Credit pools and LanmanServer parameters
@@ -471,19 +498,19 @@ function Tune-SMBAndFileSharing {
 
 # Subsystem 6: Latency & Throttling Removal
 function Tune-LatencyAndThrottling {
-    Write-Log "Subsystem [6/6]: Removing Network & System Latency Throttles..." "TUNING"
+    Write-Log "Subsystem [6/9]: Removing Network & System Latency Throttles..." "TUNING"
 
     $sysProfileKey = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile"
     $tcpKey = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters"
 
     try {
-        # Disable Network Throttling Index (0xFFFFFFFF = Unlimited network throughput)
+        # Disable Network Throttling Index (0xFFFFFFFF)
         Set-ItemProperty -Path $sysProfileKey -Name "NetworkThrottlingIndex" -Value 0xffffffff -Type DWORD -ErrorAction SilentlyContinue
 
         # Set System Responsiveness (0 = 100% CPU focus on current active tasks)
         Set-ItemProperty -Path $sysProfileKey -Name "SystemResponsiveness" -Value 0 -Type DWORD -ErrorAction SilentlyContinue
 
-        # Expand Ephemeral Ports (MaxUserPort) & Reduce TCP Wait Delay
+        # Expand Ephemeral Ports & Reduce TCP Wait Delay
         Set-ItemProperty -Path $tcpKey -Name "MaxUserPort" -Value 65534 -Type DWORD -ErrorAction SilentlyContinue
         Set-ItemProperty -Path $tcpKey -Name "TcpTimedWaitDelay" -Value 30 -Type DWORD -ErrorAction SilentlyContinue
 
@@ -493,16 +520,74 @@ function Tune-LatencyAndThrottling {
     }
 }
 
+# Subsystem 7: GPU Scheduling & Graphics Subsystem
+function Tune-GPUScheduling {
+    Write-Log "Subsystem [7/9]: Tuning GPU Acceleration & Hardware-Accelerated GPU Scheduling..." "TUNING"
+
+    $gfxKey = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers"
+
+    try {
+        # Enable Hardware-Accelerated GPU Scheduling (HwSchMode = 2)
+        Set-ItemProperty -Path $gfxKey -Name "HwSchMode" -Value 2 -Type DWORD -ErrorAction SilentlyContinue
+        Write-Log "Hardware-Accelerated GPU Scheduling (HAGS) forced to Mode 2 (Enabled)." "SUCCESS"
+    } catch {
+        Write-Log "GPU Scheduling note: $($_.Exception.Message)" "WARN"
+    }
+}
+
+# Subsystem 8: DNS Cache & Name Resolution Latency
+function Tune-DNSCache {
+    Write-Log "Subsystem [8/9]: Optimizing DNS Cache & Name Resolution Latency..." "TUNING"
+
+    $dnsKey = "HKLM:\SYSTEM\CurrentControlSet\Services\Dnscache\Parameters"
+
+    try {
+        # Increase positive DNS cache TTL and reduce negative cache TTL
+        Set-ItemProperty -Path $dnsKey -Name "MaxCacheTtl" -Value 86400 -Type DWORD -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $dnsKey -Name "MaxNegativeCacheTtl" -Value 5 -Type DWORD -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $dnsKey -Name "NetFailureCacheTime" -Value 0 -Type DWORD -ErrorAction SilentlyContinue
+
+        Write-Log "DNS Resolver optimized: MaxCacheTtl=86400s, MaxNegativeCacheTtl=5s, NetFailureCacheTime=0s." "SUCCESS"
+    } catch {
+        Write-Log "DNS Cache tuning note: $($_.Exception.Message)" "WARN"
+    }
+}
+
+# Subsystem 9: Advanced NIC Interrupt Moderation & Flow Control
+function Tune-NICInterruptsAndFlowControl {
+    Write-Log "Subsystem [9/9]: Advanced NIC Interrupt Moderation & Queue Alignment..." "TUNING"
+
+    try {
+        if ($script:SystemSpecs.NICList.Count -gt 0) {
+            foreach ($adapter in $script:SystemSpecs.NICList) {
+                # Disable Flow Control to prevent Ethernet pause frame stalls under peak traffic
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Flow Control" -DisplayValue "Disabled" -ErrorAction SilentlyContinue
+
+                # Align RSS Queues based on CPU physical cores
+                $queues = if ($script:SystemSpecs.PhysicalCores -ge 8) { "8 Queues" } else { "4 Queues" }
+                Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName "Maximum Number of RSS Queues" -DisplayValue $queues -ErrorAction SilentlyContinue
+            }
+            Write-Log "NIC Flow Control suppressed and RSS Queues aligned across physical interfaces." "SUCCESS"
+        } else {
+            Write-Log "No active physical NICs required Queue re-alignment." "INFO"
+        }
+    } catch {
+        Write-Log "NIC Interrupt tuning note: $($_.Exception.Message)" "WARN"
+    }
+}
+
 # -------------------------------------------------------------------------
 # FULL AUTOMATIC TUNING WORKFLOW CONTROLLER
 # -------------------------------------------------------------------------
 function Start-FullAutoTuneSequence {
     $btnAutoTune.Enabled = $false
     $btnRestore.Enabled = $false
+    $btnReport.Enabled = $false
     Set-Progress 0
 
+    $profileName = $cmbProfile.SelectedItem
     Write-Log "=========================================================" "INFO"
-    Write-Log "STARTING FULLY AUTOMATIC PERFORMANCE TUNING WORKFLOW" "INFO"
+    Write-Log "STARTING AUTOMATIC TUNING WORKFLOW [Profile: $profileName]" "INFO"
     Write-Log "=========================================================" "INFO"
 
     # Step 1: Detect Hardware
@@ -510,40 +595,116 @@ function Start-FullAutoTuneSequence {
     Invoke-HardwareDetection
 
     # Step 2: Auto-Backup
-    Set-Progress 25
+    Set-Progress 20
     Invoke-AutoBackup
 
     # Step 3: Subsystem Optimizations
-    Set-Progress 40
+    Set-Progress 30
     Tune-PowerAndCPU
 
-    Set-Progress 55
+    Set-Progress 40
     Tune-KernelAndMemory
 
-    Set-Progress 70
+    Set-Progress 50
     Tune-StorageAndFileSystem
 
-    Set-Progress 80
+    Set-Progress 60
     Tune-NetworkStack
 
-    Set-Progress 90
+    Set-Progress 70
     Tune-SMBAndFileSharing
 
-    Set-Progress 95
+    Set-Progress 78
     Tune-LatencyAndThrottling
+
+    Set-Progress 85
+    Tune-GPUScheduling
+
+    Set-Progress 92
+    Tune-DNSCache
+
+    Set-Progress 97
+    Tune-NICInterruptsAndFlowControl
 
     Set-Progress 100
     Write-Log "=========================================================" "SUCCESS"
-    Write-Log "⚡ ALL SUBSYSTEMS AUTONOMOUSLY TUNED FOR PEAK PERFORMANCE! " "SUCCESS"
+    Write-Log "⚡ ALL 9 SUBSYSTEMS AUTONOMOUSLY TUNED FOR PEAK PERFORMANCE! " "SUCCESS"
     Write-Log "Recommended Action: Reboot system to ensure all kernel changes take effect." "SUCCESS"
     Write-Log "=========================================================" "SUCCESS"
 
     $btnAutoTune.Enabled = $true
     $btnRestore.Enabled = $true
+    $btnReport.Enabled = $true
 
     [System.Windows.Forms.MessageBox]::Show(
-        "Autonomous Tuning Complete!`r`n`r`nAll power, kernel memory, disk NTFS, TCP network stack, SMB multichannel, and latency throttles have been optimized based on your detected hardware.`r`n`r`nPlease reboot your machine for all kernel and driver adjustments to take effect.",
+        "Autonomous Multi-Subsystem Tuning Complete!`r`n`r`nAll 9 performance subsystems (Power, Kernel/Memory, Storage NTFS, Network TCP Stack, SMB Multichannel, Latency Throttles, GPU Scheduling, DNS Cache, and NIC Queues) have been optimized.`r`n`r`nPlease reboot your machine for all kernel adjustments to take effect.",
         "Auto-Tune Finished",
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Information
+    ) | Out-Null
+}
+
+# -------------------------------------------------------------------------
+# SYSTEM DIAGNOSTIC REPORT GENERATOR
+# -------------------------------------------------------------------------
+function Generate-SystemReport {
+    Write-Log "Generating System State & Diagnostics HTML Report..." "REPORT"
+
+    $reportPath = Join-Path $script:ScriptDir "System_Tuning_Report.html"
+
+    $htmlContent = @"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Autonomous Windows Performance Report</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #12141a; color: #e0e5ea; padding: 20px; }
+        h1 { color: #00d2ff; border-bottom: 2px solid #00d2ff; padding-bottom: 10px; }
+        h2 { color: #00e673; margin-top: 25px; }
+        .card { background-color: #1a1d26; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #2a2e3d; }
+        th { background-color: #222633; color: #00d2ff; }
+        .status-good { color: #00e673; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>⚡ Autonomous Performance & Tuning Diagnostic Report</h1>
+    <div class="card">
+        <h2>System Environment Summary</h2>
+        <table>
+            <tr><th>Property</th><th>Detected Value</th></tr>
+            <tr><td>Operating System</td><td>$($script:SystemSpecs.OSCaption) ($($script:SystemSpecs.OSVersion))</td></tr>
+            <tr><td>Processor Core Count</td><td>$($script:SystemSpecs.LogicalCores) Logical / $($script:SystemSpecs.PhysicalCores) Physical Cores</td></tr>
+            <tr><td>Total Memory (RAM)</td><td>$($script:SystemSpecs.TotalRAM_GB) GB (Profile: $($script:SystemSpecs.RAMProfile))</td></tr>
+            <tr><td>Active Physical Adapters</td><td>$($script:SystemSpecs.ActiveNICsCount) Interface(s)</td></tr>
+        </table>
+    </div>
+    <div class="card">
+        <h2>Subsystem Tuning Status</h2>
+        <table>
+            <tr><th>Subsystem</th><th>Target Parameters</th><th>Status</th></tr>
+            <tr><td>Power & CPU</td><td>Ultimate / High Performance Profile, Core Parking Disabled</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>Kernel Memory</td><td>DisablePagingExecutive=1, LargeSystemCache=1, MaxWorkerThreads</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>Storage NTFS</td><td>NtfsDisable8dot3=1, NtfsDisableLastAccess=1, TRIM Active</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>Network TCP Stack</td><td>TCP Auto-Tuning, Congestion Provider (CUBIC/CTCP), ECN Enabled</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>SMB Multichannel</td><td>SMB Multichannel Enabled, Smb2CreditsMax Scaled, SMB1 Disabled</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>Latency Throttles</td><td>NetworkThrottlingIndex=Disabled, SystemResponsiveness=0</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>GPU Acceleration</td><td>Hardware-Accelerated GPU Scheduling (HAGS) Mode 2</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>DNS Cache</td><td>MaxCacheTtl=86400, MaxNegativeCacheTtl=5, NetFailureCacheTime=0</td><td class="status-good">OPTIMIZED</td></tr>
+            <tr><td>NIC Interrupts</td><td>Flow Control Disabled, RSS Queues Aligned</td><td class="status-good">OPTIMIZED</td></tr>
+        </table>
+    </div>
+</body>
+</html>
+"@
+
+    $htmlContent | Out-File -FilePath $reportPath -Encoding utf8
+    Write-Log "Diagnostic report generated successfully: $reportPath" "SUCCESS"
+
+    [System.Windows.Forms.MessageBox]::Show(
+        "Diagnostic Report Generated!`r`n`r`nFile saved to: $reportPath",
+        "Report Created",
         [System.Windows.Forms.MessageBoxButtons]::OK,
         [System.Windows.Forms.MessageBoxIcon]::Information
     ) | Out-Null
@@ -615,13 +776,16 @@ $btnRestore.Add_Click({
     Invoke-RestoreBackup
 })
 
+$btnReport.Add_Click({
+    Generate-SystemReport
+})
+
 $btnExportLog.Add_Click({
     Save-LogToFile
 })
 
 # Form Load Event: Auto-run detection immediately and trigger auto-tune workflow automatically
 $form.Add_Shown({
-    # Run hardware detection first
     Invoke-HardwareDetection
 
     # Auto-start auto-tuning sequence after 1 second

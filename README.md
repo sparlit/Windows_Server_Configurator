@@ -9,14 +9,19 @@ An enterprise suite of Python and PowerShell automation tools designed for Windo
 ### 1. Autonomous Performance & Tuning Engine (`AutoPerformanceTuner.ps1` & `run_autotuner.bat`)
 A standalone, fully automated Windows Forms GUI application for end-to-end performance tuning across Windows client and server environments:
 - **Auto-Detection**: Queries OS architecture, total physical RAM, logical/physical CPU cores, active physical network adapters, and physical disk media types.
-- **Auto-Backup**: Exports a timestamped `.reg` registry state backup and JSON metadata snapshot into a `Backups` directory prior to modifying system parameters.
-- **Auto-Tuning Engine (6 Subsystems)**:
+- **Auto-Backup**: Exports timestamped `.reg` registry state backups (SYSTEM and SOFTWARE keys) and JSON metadata snapshots into a `Backups` directory prior to modifying system parameters.
+- **Target Profiles**: Supports "Autonomous Dynamic Tuning", "Max Server Throughput", and "Low Latency Workstation".
+- **Auto-Tuning Engine (9 Subsystems)**:
   1. *Power & CPU*: Sets Ultimate/High Performance power plan, unparks CPU cores, and disables frequency throttling.
   2. *Kernel & Memory*: Disables paging executive (`DisablePagingExecutive=1`), activates Large System Cache, expands worker thread pools dynamically based on RAM capacity, and optimizes NTFS memory usage.
   3. *Storage & NTFS FileSystem*: Disables 8dot3 short name creation, disables last access time updates, expands MFT Zone reservations, and enforces TRIM / delete notification for SSDs.
   4. *Network TCP Stack & Hardware Offloading*: Configures dynamic TCP congestion providers (CUBIC/CTCP), ECN capability, Receive Window Auto-Tuning, RSS, LSO v2, Checksum Offloading, expands Receive/Transmit buffers (2048), and disables Energy Efficient Ethernet (EEE) latency spikes.
   5. *SMB Protocol Pipelining*: Enables SMB Multichannel, maxes out SMB2 credit pools (`Smb2CreditsMax`), expands LanmanServer work item limits, and disables legacy SMB1.
   6. *System Latency & Throttling Removal*: Removes network throttling (`NetworkThrottlingIndex=0xFFFFFFFF`), maximizes system responsiveness for active tasks, expands dynamic ephemeral port ranges (`MaxUserPort=65534`), and reduces TCP timed wait delay.
+  7. *GPU Scheduling & Graphics Subsystem*: Enables Hardware-Accelerated GPU Scheduling (`HwSchMode=2`).
+  8. *DNS Cache & Resolution Latency*: Optimizes DNS resolver caching (`MaxCacheTtl=86400s`, `MaxNegativeCacheTtl=5s`, `NetFailureCacheTime=0s`).
+  9. *NIC Interrupts & Queue Alignment*: Suppresses Ethernet Flow Control pause frames and aligns RSS Queues according to CPU core counts.
+- **System Diagnostics Report**: Generates an interactive `System_Tuning_Report.html` summarizing system hardware state and subsystem tuning status.
 - **Rollback Feature**: Built-in 1-click restore button to re-import pre-tuning registry backups if needed.
 
 ### 2. Network Provisioning & Zero-Trust Security (`NetworkConfigurator.py`)

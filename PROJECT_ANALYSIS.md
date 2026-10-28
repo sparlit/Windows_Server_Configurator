@@ -14,7 +14,8 @@ This repository contains a collection of network provisioning, zero-trust securi
    - **Features**:
      - **Auto-Detection**: Scans CPU logical/physical cores, RAM capacity, OS role (Server vs Client), active physical network adapters, and disk drive types.
      - **Auto-Backup**: Automatically exports timestamped `.reg` registry state backups and `.json` metadata snapshots prior to executing any modifications.
-     - **Full Auto-Tuning Engine**: Optimizes Power/CPU scheduling, Kernel & Memory allocations, Storage & NTFS file system settings, TCP Network stack & NIC offloading, SMB Multichannel & protocol pipelines, and latency/throttling parameters across 6 core subsystems.
+     - **9-Subsystem Auto-Tuning Engine**: Optimizes Power/CPU scheduling, Kernel & Memory allocations, Storage & NTFS file system settings, TCP Network stack & NIC offloading, SMB Multichannel & protocol pipelines, latency/throttling parameters, GPU Scheduling (HAGS), DNS caching, and NIC queue alignment.
+     - **Diagnostic Reports**: Generates an HTML diagnostic report (`System_Tuning_Report.html`).
      - **Rollback Capabilities**: Provides a 1-click "Restore State Backup" mechanism to undo tuning changes.
 
 2. **`NetworkConfigurator.py`**
@@ -48,7 +49,7 @@ This repository contains a collection of network provisioning, zero-trust securi
 
 1. **Clean Repository Structure**:
    - Redundant numbered versions (`*1.ps1`, `*2.py`, etc.) have been merged into single canonical entry points.
-   - Flagship fully automatic performance tuning tool (`AutoPerformanceTuner.ps1` / `run_autotuner.bat`) is provided for automated tuning with built-in backup and restore functionality.
+   - Flagship fully automatic performance tuning tool (`AutoPerformanceTuner.ps1` / `run_autotuner.bat`) is provided for automated tuning with built-in backup, restore, and diagnostic report functionality.
 
 2. **Execution Requirements**:
    - Python GUI and PowerShell scripts require **Administrator Rights** (`Run as Administrator`) on Windows to modify network interface configurations, firewall rules, and Windows Registry (`HKLM`) keys.
