@@ -580,23 +580,39 @@ function Tune-NICInterruptsAndFlowControl {
 # FULL AUTOMATIC TUNING WORKFLOW CONTROLLER
 # -------------------------------------------------------------------------
 function Start-FullAutoTuneSequence {
-    $btnAutoTune.Enabled = $false
-    $btnRestore.Enabled = $false
-    $btnReport.Enabled = $false
-    Set-Progress 0
-
     $profileName = "Autonomous Dynamic Tuning"
     if ($cmbProfile -and $cmbProfile.SelectedItem) {
         $profileName = $cmbProfile.SelectedItem.ToString()
     }
 
+    # Step 1: Detect Hardware first to show detected specs in confirmation prompt
+    Invoke-HardwareDetection
+
+    # User Confirmation Prompt
+    $confirmResult = [System.Windows.Forms.MessageBox]::Show(
+        "Detected Platform: $($script:SystemSpecs.OSCaption)`r`n" +
+        "CPU Cores: $($script:SystemSpecs.LogicalCores) Logical / $($script:SystemSpecs.PhysicalCores) Physical`r`n" +
+        "Memory: $($script:SystemSpecs.TotalRAM_GB) GB RAM`r`n" +
+        "Selected Tuning Profile: $profileName`r`n`r`n" +
+        "Do you want to proceed with applying performance tweaks across all 9 system subsystems?",
+        "Confirm Performance Tuning",
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question
+    )
+
+    if ($confirmResult -ne [System.Windows.Forms.DialogResult]::Yes) {
+        Write-Log "Automatic performance tuning cancelled by user." "WARN"
+        return
+    }
+
+    $btnAutoTune.Enabled = $false
+    $btnRestore.Enabled = $false
+    $btnReport.Enabled = $false
+    Set-Progress 0
+
     Write-Log "=========================================================" "INFO"
     Write-Log "STARTING AUTOMATIC TUNING WORKFLOW [Profile: $profileName]" "INFO"
     Write-Log "=========================================================" "INFO"
-
-    # Step 1: Detect Hardware
-    Set-Progress 10
-    Invoke-HardwareDetection
 
     # Step 2: Auto-Backup
     Set-Progress 20
