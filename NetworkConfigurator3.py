@@ -313,7 +313,7 @@ class NetworkConfiguratorApp:
         self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'IPv6 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
         
         self.run_cmd("Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -Value 4294967295 -Type DWord -Force")
-        self.run_cmd("Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\SystemProfile' -Name 'SystemResponsiveness' -Value 0 -Type DWord -Force")
+        self.run_cmd("Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -Value 0 -Type DWord -Force")
 
         # Record to tracking ledger
         conn = sqlite3.connect(self.db_path)

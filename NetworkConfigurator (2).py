@@ -189,8 +189,7 @@ class NetworkConfiguratorApp:
 
     def log(self, message):
         self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, message + "
-")
+        self.log_text.insert(tk.END, message + "\n")
         self.log_text.see(tk.END)
         self.log_text.config(state=tk.DISABLED)
         self.root.update_idletasks()

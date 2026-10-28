@@ -424,6 +424,14 @@ class NetworkConfiguratorApp:
             self.tree.insert("", tk.END, values=row)
         conn.close()
 
+
+    def run_cmd(self, cmd):
+        try:
+            result = subprocess.run(["powershell", "-Command", cmd], capture_output=True, text=True, check=True)
+            return True, result.stdout
+        except subprocess.CalledProcessError as e:
+            return False, e.stderr
+
     def execute_provisioning(self):
         if not is_admin():
             if not messagebox.askyesno("Admin Warning", "Administrative elevation required to apply configurations. Execute anyway?"):
