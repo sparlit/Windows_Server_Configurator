@@ -117,6 +117,20 @@ class NetworkConfiguratorApp:
         self.ipv6_entry = ttk.Entry(ipv6_group, width=35)
         self.ipv6_entry.grid(row=0, column=1, padx=5, pady=2)
 
+        # Drive Storage Mapping
+        mount_group = ttk.LabelFrame(self.tab_provision, text=" 📂 Automated High-Speed Storage Drive Mapping Settings ", padding="10")
+        mount_group.pack(fill=tk.X, pady=2)
+
+        ttk.Label(mount_group, text="Map Drive Letter:").grid(row=0, column=0, sticky=tk.W, padx=5, pady=2)
+        self.drive_letter_combobox = ttk.Combobox(mount_group, values=["X:", "Y:", "Z:", "W:", "V:", "U:"], width=10, state="readonly")
+        self.drive_letter_combobox.set("X:")
+        self.drive_letter_combobox.grid(row=0, column=1, sticky=tk.W, padx=5, pady=2)
+
+        ttk.Label(mount_group, text="Target Share Folder Name:").grid(row=0, column=2, sticky=tk.W, padx=5, pady=2)
+        self.share_folder_combobox = ttk.Combobox(mount_group, values=["SharedFolder", "Production_Data", "Design_Files", "Billing_Ledger", "Server_Backup"], width=20, state="normal")
+        self.share_folder_combobox.set("Production_Data")
+        self.share_folder_combobox.grid(row=0, column=3, sticky=tk.W, padx=5, pady=2)
+
         ledger_group = ttk.LabelFrame(self.tab_provision, text=" 📊 Network Allocation Ledger ", padding="5")
         ledger_group.pack(fill=tk.BOTH, expand=True, pady=4)
 
@@ -425,6 +439,37 @@ class NetworkConfiguratorApp:
         conn.close()
 
 
+    def inject_startup_mounting_script(self, drive, share):
+        startup_path = os.path.join(os.environ["APPDATA"], "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
+        script_file = os.path.join(startup_path, "MountDrives.bat")
+        script_content = f"""@echo off
+title High-Performance Storage Drive Mapper
+echo ====================================================================
+echo    INITIATING ZERO-TRUST HIGH-SPEED STORAGE LANE INTERFACE
+echo ====================================================================
+echo.
+echo Flushing legacy network cache layers...
+net use * /delete /yes >nul 2>&1
+timeout /t 2 /nobreak >nul
+echo Mounting File Server 1 (GDC Core Lane) to {drive}...
+net use {drive} "\\\\`[fd37:e2a1:9c84:1000::2`]:\\{share}" /persistent:yes
+echo Mounting File Server 2 (GFS Core Lane) to Y:...
+net use Y: "\\\\`[fd37:e2a1:9c84:1000::3`]:\\{share}" /persistent:yes
+echo.
+echo ====================================================================
+echo    🏆 STORAGE PATH DEPLOYMENT COMPLETE (HIGH SPEED LANE ENGAGED)
+echo ====================================================================
+timeout /t 2 /nobreak >nul
+"""
+        try:
+            with open(script_file, "w") as f:
+                f.write(script_content)
+            self.log_to_tab1(f"✅ High-Speed Drive Script successfully injected into local Startup ({drive} -> {share}).")
+            return True
+        except Exception as e:
+            self.log_to_tab1(f"⚠️ Startup Script Injection Failure: {str(e)}")
+            return False
+
     def run_cmd(self, cmd):
         try:
             result = subprocess.run(["powershell", "-Command", cmd], capture_output=True, text=True, check=True)
@@ -446,6 +491,8 @@ class NetworkConfiguratorApp:
 
         srv_v6_subnet = self.srv_ipv6_entry.get().strip()
         printers_v4 = self.printers_entry.get().strip()
+        drive_letter = self.drive_letter_combobox.get()
+        share_folder = self.share_folder_combobox.get().strip()
 
         if not dept:
             messagebox.showerror("Selection Error", "Please assign a functional group department first.")
@@ -510,6 +557,10 @@ class NetworkConfiguratorApp:
             self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'Large Send Offload V2 (IPv6)' -DisplayValue 'Enabled' -ErrorAction SilentlyContinue")
             self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'IPv4 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
             self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'IPv6 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
+
+        # Storage Mapping
+        if drive_letter and share_folder:
+            self.inject_startup_mounting_script(drive_letter, share_folder)
 
         # Record Entry to Database Ledger
         conn = sqlite3.connect(self.db_path)
