@@ -21,6 +21,7 @@ class NetworkConfiguratorApp:
         self.root.resizable(False, False)
 
         self.db_path = "network_config_history.db"
+        self.allocated_v4_cache = {}
         self.init_database()
 
         # Department Mapping Baselines
@@ -373,17 +374,10 @@ class NetworkConfiguratorApp:
         v4_base = meta["v4_start"]
         v6_sub = meta["v6_sub"]
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        allocated_v4 = []
-        cursor.execute("SELECT ipv4_address FROM allocated_profiles WHERE department = ?", (dept,))
-        for row in cursor.fetchall():
-            try: allocated_v4.append(int(row[0].split('.')[-1]))
-            except: pass
+        allocated_v4 = self.allocated_v4_cache.get(dept, set())
         next_offset = v4_base
         while next_offset in allocated_v4:
             next_offset += 1
-        conn.close()
 
         self.ipv4_entry.delete(0, tk.END)
         self.ipv4_entry.insert(0, f"10.0.0.{next_offset}")
@@ -431,11 +425,20 @@ class NetworkConfiguratorApp:
     def refresh_ledger_view(self):
         for item in self.tree.get_children():
             self.tree.delete(item)
+        self.allocated_v4_cache = {dept: set() for dept in self.departments}
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute("SELECT pc_name, department, ipv4_address, ipv6_address FROM allocated_profiles ORDER BY timestamp DESC")
         for row in cursor.fetchall():
             self.tree.insert("", tk.END, values=row)
+            dept, ip4 = row[1], row[2]
+            if dept and ip4:
+                if dept not in self.allocated_v4_cache:
+                    self.allocated_v4_cache[dept] = set()
+                try:
+                    self.allocated_v4_cache[dept].add(int(ip4.split('.')[-1]))
+                except (ValueError, AttributeError, IndexError):
+                    pass
         conn.close()
 
 
