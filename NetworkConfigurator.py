@@ -6,6 +6,71 @@ import ctypes
 import sqlite3
 import os
 import csv
+import ipaddress
+import re
+
+def ps_quote(val):
+    if val is None:
+        return ""
+    return str(val).replace("'", "''")
+
+def validate_ipv4(val):
+    try:
+        ipaddress.IPv4Address(val)
+        return True
+    except ValueError:
+        return False
+
+def validate_ipv6(val):
+    try:
+        ipaddress.IPv6Address(val)
+        return True
+    except ValueError:
+        return False
+
+def validate_ipv6_subnet(val):
+    if not val:
+        return True
+    try:
+        ipaddress.IPv6Network(val, strict=False)
+        return True
+    except ValueError:
+        try:
+            ipaddress.IPv6Address(val)
+            return True
+        except ValueError:
+            return False
+
+def validate_printers_v4(val):
+    if not val:
+        return True
+    parts = [p.strip() for p in val.split(',')]
+    for part in parts:
+        if not part:
+            continue
+        if '-' in part:
+            range_parts = part.split('-')
+            if len(range_parts) != 2:
+                return False
+            if not validate_ipv4(range_parts[0].strip()) or not validate_ipv4(range_parts[1].strip()):
+                return False
+        else:
+            try:
+                ipaddress.IPv4Network(part, strict=False)
+            except ValueError:
+                if not validate_ipv4(part):
+                    return False
+    return True
+
+def validate_hostname(val):
+    if not val:
+        return True
+    return bool(re.match(r'^[A-Za-z0-9\-_]{1,63}$', val))
+
+def validate_adapter_name(val):
+    if not val:
+        return False
+    return bool(re.match(r'^[A-Za-z0-9_\-\.\s()]+$', val))
 
 def is_admin():
     try:
@@ -498,6 +563,34 @@ timeout /t 2 /nobreak >nul
             messagebox.showerror("Selection Error", "Please assign a functional group department first.")
             return
 
+        if not validate_adapter_name(adapter):
+            messagebox.showerror("Validation Error", "Invalid Target Interface selected.")
+            return
+
+        if pc_name and not validate_hostname(pc_name):
+            messagebox.showerror("Validation Error", f"Invalid PC Name format: {pc_name}")
+            return
+
+        if not validate_ipv4(ip4):
+            messagebox.showerror("Validation Error", f"Invalid Static IPv4 Address: {ip4}")
+            return
+
+        if not validate_ipv4(gw):
+            messagebox.showerror("Validation Error", f"Invalid Default Gateway: {gw}")
+            return
+
+        if not validate_ipv6(ip6):
+            messagebox.showerror("Validation Error", f"Invalid Static IPv6 Address: {ip6}")
+            return
+
+        if srv_v6_subnet and not validate_ipv6_subnet(srv_v6_subnet):
+            messagebox.showerror("Validation Error", f"Invalid Server IPv6 Subnet: {srv_v6_subnet}")
+            return
+
+        if printers_v4 and not validate_printers_v4(printers_v4):
+            messagebox.showerror("Validation Error", f"Invalid Printers IPv4 configuration: {printers_v4}")
+            return
+
         is_valid, err_msg = self.check_conflicts(pc_name, ip4, ip6)
         if not is_valid:
             messagebox.showerror("Conflict Warning", err_msg)
@@ -508,17 +601,17 @@ timeout /t 2 /nobreak >nul
 
         if pc_name:
             self.log_to_tab1(f"Mapping host name profile to: {pc_name}...")
-            self.run_cmd(f"Rename-Computer -NewName '{pc_name}' -Force")
+            self.run_cmd(f"Rename-Computer -NewName '{ps_quote(pc_name)}' -Force")
 
         self.log_to_tab1(f"Setting connection boundary classification profile to interface: {adapter}...")
-        self.run_cmd(f"Set-NetConnectionProfile -InterfaceAlias '{adapter}' -NetworkCategory Public")
+        self.run_cmd(f"Set-NetConnectionProfile -InterfaceAlias '{ps_quote(adapter)}' -NetworkCategory Public")
 
         self.log_to_tab1("Provisioning dual-stack adapter interfaces...")
-        self.run_cmd(f"Remove-NetIPAddress -InterfaceAlias '{adapter}' -AddressFamily IPv4 -Confirm:$false")
-        self.run_cmd(f"New-NetIPAddress -InterfaceAlias '{adapter}' -IPAddress '{ip4}' -PrefixLength 24 -DefaultGateway '{gw}'")
+        self.run_cmd(f"Remove-NetIPAddress -InterfaceAlias '{ps_quote(adapter)}' -AddressFamily IPv4 -Confirm:$false")
+        self.run_cmd(f"New-NetIPAddress -InterfaceAlias '{ps_quote(adapter)}' -IPAddress '{ps_quote(ip4)}' -PrefixLength 24 -DefaultGateway '{ps_quote(gw)}'")
 
-        self.run_cmd(f"Remove-NetIPAddress -InterfaceAlias '{adapter}' -AddressFamily IPv6 -Confirm:$false")
-        self.run_cmd(f"New-NetIPAddress -InterfaceAlias '{adapter}' -IPAddress '{ip6}' -PrefixLength 64")
+        self.run_cmd(f"Remove-NetIPAddress -InterfaceAlias '{ps_quote(adapter)}' -AddressFamily IPv6 -Confirm:$false")
+        self.run_cmd(f"New-NetIPAddress -InterfaceAlias '{ps_quote(adapter)}' -IPAddress '{ps_quote(ip6)}' -PrefixLength 64")
 
         self.log_to_tab1("Purging baseline firewall filters...")
         for rule in ['Block-Local-IPv4-CrossTalk', 'Allow-IPv4-Printers', 'Isolate-IPv6-PCs', 'Allow-IPv6-Master-Servers']:
@@ -527,10 +620,10 @@ timeout /t 2 /nobreak >nul
         # Hub-and-Spoke Firewall Injections
         self.run_cmd("New-NetFirewallRule -DisplayName 'Block-Local-IPv4-CrossTalk' -Direction Inbound -Action Block -RemoteAddress '10.0.0.1-10.0.0.253' -Protocol Any")
         if printers_v4:
-            self.run_cmd(f"New-NetFirewallRule -DisplayName 'Allow-IPv4-Printers' -Direction Inbound -Action Allow -RemoteAddress '{printers_v4}' -Protocol Any")
+            self.run_cmd(f"New-NetFirewallRule -DisplayName 'Allow-IPv4-Printers' -Direction Inbound -Action Allow -RemoteAddress '{ps_quote(printers_v4)}' -Protocol Any")
         self.run_cmd("New-NetFirewallRule -DisplayName 'Isolate-IPv6-PCs' -Direction Inbound -Action Block -RemoteAddress 'fd37:e2a1:9c84::/48' -Protocol Any")
         if srv_v6_subnet:
-            self.run_cmd(f"New-NetFirewallRule -DisplayName 'Allow-IPv6-Master-Servers' -Direction Inbound -Action Allow -RemoteAddress '{srv_v6_subnet}' -Protocol Any")
+            self.run_cmd(f"New-NetFirewallRule -DisplayName 'Allow-IPv6-Master-Servers' -Direction Inbound -Action Allow -RemoteAddress '{ps_quote(srv_v6_subnet)}' -Protocol Any")
 
         # --- Advanced Optimization Executive Sub-Matrix ---
         self.log_to_tab1("Injecting advanced optimization matrix...")
@@ -545,18 +638,18 @@ timeout /t 2 /nobreak >nul
         if self.tune_throttling.get():   self.run_cmd("Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -Value 4294967295 -Type DWord -Force")
 
         if self.tune_jumbo.get():
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'Jumbo Packet' -DisplayValue '9014 Bytes' -ErrorAction SilentlyContinue")
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'Jumbo Frame' -DisplayValue '9KB' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'Jumbo Packet' -DisplayValue '9014 Bytes' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'Jumbo Frame' -DisplayValue '9KB' -ErrorAction SilentlyContinue")
 
         if self.tune_eee.get():
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'Energy Efficient Ethernet' -DisplayValue 'Disabled' -ErrorAction SilentlyContinue")
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName '*EEE' -DisplayValue '0' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'Energy Efficient Ethernet' -DisplayValue 'Disabled' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName '*EEE' -DisplayValue '0' -ErrorAction SilentlyContinue")
 
         if self.tune_offload.get():
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'Large Send Offload V2 (IPv4)' -DisplayValue 'Enabled' -ErrorAction SilentlyContinue")
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'Large Send Offload V2 (IPv6)' -DisplayValue 'Enabled' -ErrorAction SilentlyContinue")
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'IPv4 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
-            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{adapter}' -DisplayName 'IPv6 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'Large Send Offload V2 (IPv4)' -DisplayValue 'Enabled' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'Large Send Offload V2 (IPv6)' -DisplayValue 'Enabled' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'IPv4 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
+            self.run_cmd(f"Set-NetAdapterAdvancedProperty -Name '{ps_quote(adapter)}' -DisplayName 'IPv6 Checksum Offload' -DisplayValue 'Rx & Tx Enabled' -ErrorAction SilentlyContinue")
 
         # Storage Mapping
         if drive_letter and share_folder:
