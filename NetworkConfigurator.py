@@ -521,8 +521,7 @@ timeout /t 2 /nobreak >nul
         self.run_cmd(f"New-NetIPAddress -InterfaceAlias '{adapter}' -IPAddress '{ip6}' -PrefixLength 64")
 
         self.log_to_tab1("Purging baseline firewall filters...")
-        for rule in ['Block-Local-IPv4-CrossTalk', 'Allow-IPv4-Printers', 'Isolate-IPv6-PCs', 'Allow-IPv6-Master-Servers']:
-            self.run_cmd(f"Remove-NetFirewallRule -DisplayName '{rule}' -ErrorAction SilentlyContinue")
+        self.run_cmd("Remove-NetFirewallRule -DisplayName 'Block-Local-IPv4-CrossTalk', 'Allow-IPv4-Printers', 'Isolate-IPv6-PCs', 'Allow-IPv6-Master-Servers' -ErrorAction SilentlyContinue")
 
         # Hub-and-Spoke Firewall Injections
         self.run_cmd("New-NetFirewallRule -DisplayName 'Block-Local-IPv4-CrossTalk' -Direction Inbound -Action Block -RemoteAddress '10.0.0.1-10.0.0.253' -Protocol Any")
