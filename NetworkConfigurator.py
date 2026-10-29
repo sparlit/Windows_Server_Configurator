@@ -535,13 +535,17 @@ timeout /t 2 /nobreak >nul
         # --- Advanced Optimization Executive Sub-Matrix ---
         self.log_to_tab1("Injecting advanced optimization matrix...")
 
-        if self.tune_autotune.get():     self.run_cmd("netsh int tcp set global autotuninglevel=normal")
-        if self.tune_cubic.get():        self.run_cmd("netsh int tcp set global congestionprovider=cubic")
-        if self.tune_rss.get():          self.run_cmd("netsh int tcp set global rss=enabled")
-        if self.tune_chimney.get():      self.run_cmd("netsh int tcp set global chimney=enabled")
-        if self.tune_timestamps.get():   self.run_cmd("netsh int tcp set global timestamps=disabled")
-        if self.tune_netdma.get():       self.run_cmd("netsh int tcp set global netdma=enabled")
-        if self.tune_ecn.get():          self.run_cmd("netsh int tcp set global ecncapability=enabled")
+        tcp_cmds = []
+        if self.tune_autotune.get():     tcp_cmds.append("netsh int tcp set global autotuninglevel=normal")
+        if self.tune_cubic.get():        tcp_cmds.append("netsh int tcp set global congestionprovider=cubic")
+        if self.tune_rss.get():          tcp_cmds.append("netsh int tcp set global rss=enabled")
+        if self.tune_chimney.get():      tcp_cmds.append("netsh int tcp set global chimney=enabled")
+        if self.tune_timestamps.get():   tcp_cmds.append("netsh int tcp set global timestamps=disabled")
+        if self.tune_netdma.get():       tcp_cmds.append("netsh int tcp set global netdma=enabled")
+        if self.tune_ecn.get():          tcp_cmds.append("netsh int tcp set global ecncapability=enabled")
+
+        if tcp_cmds:
+            self.run_cmd("; ".join(tcp_cmds))
         if self.tune_throttling.get():   self.run_cmd("Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -Value 4294967295 -Type DWord -Force")
 
         if self.tune_jumbo.get():
