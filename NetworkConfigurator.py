@@ -6,6 +6,20 @@ import ctypes
 import sqlite3
 import os
 import csv
+import re
+
+def validate_drive_letter(drive):
+    if not isinstance(drive, str):
+        return False
+    return bool(re.match(r'^[A-Za-z]:$', drive.strip()))
+
+def validate_share_name(share):
+    if not isinstance(share, str):
+        return False
+    share = share.strip()
+    if not share or len(share) > 80:
+        return False
+    return bool(re.match(r'^[a-zA-Z0-9_\- ]+$', share))
 
 def is_admin():
     try:
@@ -440,7 +454,23 @@ class NetworkConfiguratorApp:
 
 
     def inject_startup_mounting_script(self, drive, share):
-        startup_path = os.path.join(os.environ["APPDATA"], "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
+        drive = (drive or "").strip()
+        share = (share or "").strip()
+
+        if not validate_drive_letter(drive):
+            self.log_to_tab1(f"⚠️ Startup Script Injection Failure: Invalid or unsafe drive letter '{drive}'.")
+            return False
+
+        if not validate_share_name(share):
+            self.log_to_tab1(f"⚠️ Startup Script Injection Failure: Invalid or unsafe share folder name '{share}'.")
+            return False
+
+        appdata_dir = os.environ.get("APPDATA")
+        if not appdata_dir:
+            self.log_to_tab1("⚠️ Startup Script Injection Failure: APPDATA environment variable is not set.")
+            return False
+
+        startup_path = os.path.join(appdata_dir, "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
         script_file = os.path.join(startup_path, "MountDrives.bat")
         script_content = f"""@echo off
 title High-Performance Storage Drive Mapper
@@ -462,6 +492,7 @@ echo ====================================================================
 timeout /t 2 /nobreak >nul
 """
         try:
+            os.makedirs(startup_path, exist_ok=True)
             with open(script_file, "w") as f:
                 f.write(script_content)
             self.log_to_tab1(f"✅ High-Speed Drive Script successfully injected into local Startup ({drive} -> {share}).")
