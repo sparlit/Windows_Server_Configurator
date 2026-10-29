@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import subprocess
-import sys
 import ctypes
 import sqlite3
 import os
