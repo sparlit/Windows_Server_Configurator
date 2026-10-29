@@ -66,17 +66,7 @@ $txtLog.ForeColor = [System.Drawing.Color]::FromArgb(0, 255, 102)
 $form.Controls.Add($txtLog)
 
 # --- LOGGING HELPER ---
-function Write-GuiLog {
-    param([string]$Message, [string]$Type = "INFO")
-    $timestamp = Get-Date -Format "HH:mm:ss"
-    $prefix = switch ($Type) {
-        "SUCCESS" { "[+] PASS:" }
-        "WARN"    { "[!] MISCONFIGURED:" }
-        "ERROR"   { "[-] ERROR:" }
-        default   { "[*] AUDIT:" }
-    }
-    $txtLog.AppendText("$timestamp $prefix $Message`r`n")
-}
+. "$PSScriptRoot\GuiLogging.ps1"
 
 # --- AUDIT ENGINE LOGIC ---
 $btnDetect.Add_Click({
