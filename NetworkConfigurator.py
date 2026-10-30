@@ -21,6 +21,7 @@ class NetworkConfiguratorApp:
         self.root.resizable(False, False)
 
         self.db_path = "network_config_history.db"
+        self._allocated_v4_cache = None
         self.init_database()
 
         # Department Mapping Baselines
@@ -60,6 +61,26 @@ class NetworkConfiguratorApp:
         self.populate_adapters()
         self.refresh_ledger_view()
         self.auto_select_tuning_parameters()
+
+    def invalidate_cache(self):
+        self._allocated_v4_cache = None
+
+    def _get_allocated_v4(self, dept):
+        if self._allocated_v4_cache is None:
+            self._allocated_v4_cache = {}
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT department, ipv4_address FROM allocated_profiles")
+            for row in cursor.fetchall():
+                department, ipv4 = row[0], row[1]
+                if department not in self._allocated_v4_cache:
+                    self._allocated_v4_cache[department] = []
+                try:
+                    self._allocated_v4_cache[department].append(int(ipv4.split('.')[-1]))
+                except:
+                    pass
+            conn.close()
+        return self._allocated_v4_cache.get(dept, [])
 
     def init_database(self):
         conn = sqlite3.connect(self.db_path)
@@ -301,6 +322,7 @@ class NetworkConfiguratorApp:
             cursor.execute("DELETE FROM allocated_profiles")
             conn.commit()
             conn.close()
+            self.invalidate_cache()
             self.refresh_ledger_view()
             self.log_to_tab1("❌ Database ledger history purged completely.")
 
@@ -345,6 +367,7 @@ class NetworkConfiguratorApp:
             """, (new_name, dept, ip4, ip6, old_name))
             conn.commit()
             conn.close()
+            self.invalidate_cache()
             self.refresh_ledger_view()
             messagebox.showinfo("Ledger Updated", f"Successfully saved manual modifications for: {new_name}")
         except Exception as e:
@@ -358,6 +381,7 @@ class NetworkConfiguratorApp:
             cursor.execute("DELETE FROM allocated_profiles WHERE pc_name = ?", (name,))
             conn.commit()
             conn.close()
+            self.invalidate_cache()
             self.refresh_ledger_view()
             self.ind_name_entry.delete(0, tk.END)
             self.ind_ipv4_entry.delete(0, tk.END)
@@ -373,17 +397,10 @@ class NetworkConfiguratorApp:
         v4_base = meta["v4_start"]
         v6_sub = meta["v6_sub"]
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        allocated_v4 = []
-        cursor.execute("SELECT ipv4_address FROM allocated_profiles WHERE department = ?", (dept,))
-        for row in cursor.fetchall():
-            try: allocated_v4.append(int(row[0].split('.')[-1]))
-            except: pass
+        allocated_v4 = self._get_allocated_v4(dept)
         next_offset = v4_base
         while next_offset in allocated_v4:
             next_offset += 1
-        conn.close()
 
         self.ipv4_entry.delete(0, tk.END)
         self.ipv4_entry.insert(0, f"10.0.0.{next_offset}")
@@ -568,6 +585,7 @@ timeout /t 2 /nobreak >nul
         cursor.execute("INSERT INTO allocated_profiles (pc_name, department, ipv4_address, ipv6_address) VALUES (?, ?, ?, ?)", (pc_name, dept, ip4, ip6))
         conn.commit()
         conn.close()
+        self.invalidate_cache()
 
         self.refresh_ledger_view()
         self.log_to_tab1("🏆 [PROVISIONING COMPLETE - PERFORMANCE ENGINE ENGAGED]")
