@@ -375,10 +375,10 @@ class NetworkConfiguratorApp:
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        allocated_v4 = []
+        allocated_v4 = set()
         cursor.execute("SELECT ipv4_address FROM allocated_profiles WHERE department = ?", (dept,))
         for row in cursor.fetchall():
-            try: allocated_v4.append(int(row[0].split('.')[-1]))
+            try: allocated_v4.add(int(row[0].split('.')[-1]))
             except: pass
         next_offset = v4_base
         while next_offset in allocated_v4:
